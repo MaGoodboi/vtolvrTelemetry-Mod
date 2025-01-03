@@ -72,9 +72,6 @@ namespace vtolvrTelemetry
 
         public void Start()
         {
-            Harmony harmony = new Harmony("vtolvrTelemetry.logger.logger");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
-
             udpClient = new UdpClient();
             udpClient.Connect(receiverIp, receiverPort);
 

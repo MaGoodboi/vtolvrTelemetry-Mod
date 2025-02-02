@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace vtolvrTelemetry
+namespace vtolvrtelemetry
 {
     public class Support
     {

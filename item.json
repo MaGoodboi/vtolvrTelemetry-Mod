@@ -2,7 +2,7 @@
   "$schema": "https://gitlab.com/vtolvr-mods/ModLoader/-/raw/release/schema.json",
   "Title": "vtolvrtelemetry",
   "Description": "A mod that sends telemetry data to Yaw2 chairs.",
-  "PreviewImageUrl": "https://vtolvr-mods.com/static/img/Logo.png",
+  "PreviewImageUrl": "https://raw.githubusercontent.com/MaGoodboi/vtolvrtelemetry/main/icon.PNG",
   "MetaData": {
     "DllName": "vtolvrTelemetry.dll",
     "AllowLoadOnStart": true,

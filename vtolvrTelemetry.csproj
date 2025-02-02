@@ -4,60 +4,50 @@
     <OutputType>Library</OutputType>
     <LangVersion>default</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AssemblyName>vtolvrtelemetry</AssemblyName>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
+  
   <ItemGroup>
+    <Content Include="icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include="lib\VTOLAPI.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="lib\0Harmony.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="lib\ModLoader.Framework.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="lib\UnityEngine.CoreModule.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Reference Include="VTOLAPI">
+      <HintPath>lib\VTOLAPI.dll</HintPath>
+    </Reference>
     <Reference Include="0Harmony">
       <HintPath>lib\0Harmony.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>lib\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="ModLoader.Framework">
       <HintPath>lib\ModLoader.Framework.dll</HintPath>
     </Reference>
-    <Reference Include="SteamQueries.Models">
-      <HintPath>lib\SteamQueries.Models.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>lib\UnityEngine.AssetBundleModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>lib\UnityEngine.IMGUIModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>lib\UnityEngine.JSONSerializeModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.ParticleSystemModule">
-      <HintPath>lib\UnityEngine.ParticleSystemModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>lib\UnityEngine.PhysicsModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>lib\UnityEngine.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UIModule">
-      <HintPath>lib\UnityEngine.UIModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UnityWebRequestAssetBundleModule">
-      <HintPath>lib\UnityEngine.UnityWebRequestAssetBundleModule.dll</HintPath>
-    </Reference>
-    <Reference Include="Valve.Newtonsoft.Json">
-      <HintPath>lib\Valve.Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="VTOLAPI">
-      <HintPath>lib\VTOLAPI.dll</HintPath>
-    </Reference>
   </ItemGroup>
+  
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(ProjectDir)item.json&quot; &quot;$(TargetDir)Mods\vtolvrTelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;$(TargetDir)Mods\vtolvrTelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;$(TargetDir)Mods\vtolvrTelemetry\&quot; /i /y" />
+    <Exec Command="xcopy &quot;$(ProjectDir)lib\VTOLAPI.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
+    <Exec Command="xcopy &quot;$(ProjectDir)lib\0Harmony.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
+    <Exec Command="xcopy &quot;$(ProjectDir)lib\ModLoader.Framework.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
+    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
+    <Exec Command="xcopy &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
   </Target>
 </Project>

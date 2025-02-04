@@ -75,6 +75,8 @@ namespace vtolvrtelemetry
             json_path = $"{DataLogFolder}datalog.json";
 
             dataGetter = new DataGetters(this);
+
+            udpClient = new UdpClient();
         }
 
         public IEnumerator DiscoverDevice()
@@ -103,20 +105,27 @@ namespace vtolvrtelemetry
                 try
                 {
                     byte[] response = discoveryClient.Receive(ref responseEndpoint);
-                    string responseMessage = Encoding.ASCII.GetString(response);
-
-                    if (responseMessage.Contains("YAWDEVICE2")) // Validate response
+                    if (response.Length > 0)
                     {
-                        receiverIp = responseEndpoint.Address.ToString();
-                        Debug.Log($"Discovered Yaw2 chair at IP: {receiverIp}");
-                        deviceFound = true;
+                        string responseMessage = Encoding.ASCII.GetString(response);
+
+
+                        if (responseMessage.Contains("YAWDEVICE2")) // Validate response
+                        {
+                            receiverIp = responseEndpoint.Address.ToString();
+                            Debug.Log($"Discovered Yaw2 chair at IP: {receiverIp}");
+                            deviceFound = true;
+                        }
                     }
                 }
-                catch (SocketException ex)
+                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
                 {
                     retries++;
                     Debug.LogWarning($"Timeout waiting for device response. Retrying... ({retries}/{maxRetries})");
-                    Debug.LogError($"SocketException: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Unexpected error during device discovery: {ex.Message}");
                 }
 
                 // Delay outside catch block

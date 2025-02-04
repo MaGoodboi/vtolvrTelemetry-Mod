@@ -8,12 +8,6 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <Content Include="icon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  
-  <ItemGroup>
     <None Include="lib\VTOLAPI.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -26,29 +20,32 @@
     <None Include="lib\UnityEngine.CoreModule.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+        <None Include="lib\Assembly-CSharp.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   
   <ItemGroup>
     <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.JSONSerializeModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>lib\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <HintPath>lib\UnityEngine.UIModule.dll</HintPath>
     </Reference>
     <Reference Include="Valve.Newtonsoft.Json">
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\VTOL VR\VTOLVR_Data\Managed\Valve.Newtonsoft.Json.dll</HintPath>
+      <HintPath>lib\Valve.Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="VTOLAPI">
       <HintPath>lib\VTOLAPI.dll</HintPath>
@@ -62,13 +59,17 @@
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
+        <Reference Include="Assembly-CSharp">
+      <HintPath>lib\Assembly-CSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
-  
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy &quot;$(ProjectDir)lib\VTOLAPI.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(ProjectDir)lib\0Harmony.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(ProjectDir)lib\ModLoader.Framework.dll&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(TargetPath)&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
-    <Exec Command="xcopy &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\&quot; /i /y" />
+    <!-- Copy the compiled DLL to VTOL VR Mods folder -->
+    <Exec Command="xcopy /Y /I /Q &quot;$(TargetPath)&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
+
+    <!-- Copy the .pdb file for debugging (optional) -->
+    <Exec Command="xcopy /Y /I /Q &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
   </Target>
+
 </Project>

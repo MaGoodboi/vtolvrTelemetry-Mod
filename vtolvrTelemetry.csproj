@@ -66,10 +66,10 @@
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <!-- Copy the compiled DLL to VTOL VR Mods folder -->
-    <Exec Command="xcopy /Y /I /Q &quot;$(TargetPath)&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
+    <Exec Command="xcopy /Y /I /Q &quot;$(TargetPath)&quot; &quot;C:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
 
     <!-- Copy the .pdb file for debugging (optional) -->
-    <Exec Command="xcopy /Y /I /Q &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;E:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
+    <Exec Command="xcopy /Y /I /Q &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;C:\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
   </Target>
 
 </Project>

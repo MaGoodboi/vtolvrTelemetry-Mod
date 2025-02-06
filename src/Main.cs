@@ -1,150 +1,140 @@
-﻿/* Thank you to nevbriv for creating the original version.*/
+﻿using System;
+using System.Collections;
+using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using ModLoader.Framework;
 using ModLoader.Framework.Attributes;
-using UnityEngine.Events;
-using HarmonyLib;
-using System;
-using System.Text;
-using System.Collections;
 using UnityEngine;
-using System.Net;
+using UnityEngine.SceneManagement;
 
 namespace vtolvrtelemetry
 {
-    static class Globals
+    [ItemId("mytikos.vtolvrtelemetry")]
+    public class Main : VtolMod
     {
-        public static string projectName = "vtolvrtelemetry";
-        public static string projectAuthor = "mystikos";
-        public static string projectVersion = "1.0";
-    }
-
-    [ItemId("mystikos.vtolvrtelemetry")] // Harmony ID for your mod, make sure this is unique
-    public class VtolvrTelemetry : VtolMod
-    {
-        public string receiverIp = "127.0.0.1"; // Placeholder until discovery
-        public int receiverPort = 28067;       // Default telemetry port
-        public UdpClient udpClient;
-
         public string ModFolder;
-        public bool runlogger;
-        public int iterator;
-        public int secondCount;
-        public UnityAction<string> stringChanged;
-        public UnityAction<int> intChanged;
-        public UnityAction<bool> csvChanged;
-        public UnityAction<bool> udpChanged;
-        public UnityAction<bool> jsonChanged;
-
-        public string DataLogFolder;
-        public string csv_path;
-        public string json_path;
-
-        public bool csvEnabled = true;
-        public bool udpEnabled = true;
-        public bool jsonEnabled = true;
-        public bool printOutput = false;
-
-        public DataGetters dataGetter;
+        public UdpClient SendUdpClient = new UdpClient();
+        public string SendToIP = "127.0.0.1"; // Default, updated by Yaw2 discovery
+        public int SendToPort = 4123;
+        private bool canSendUDP = false;
 
         private void Awake()
         {
-            Debug.Log($"{Globals.projectName} - Telemetry Mod {Globals.projectVersion} by {Globals.projectAuthor} initialized!");
+            ModFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            StartCoroutine(WaitForLoad()); // ✅ Ensures game is fully loaded before telemetry starts
+            LogData.AddEntry("Start sending telemetry data to YAW Device");
         }
 
-        public void Start()
+        private IEnumerator WaitForLoad()
         {
-            Harmony harmony = new Harmony("vtolvrtelemetry.logger.logger");
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
-
-            Debug.Log("Starting telemetry mod...");
-
-            // Start device discovery
-            StartCoroutine(DiscoverDevice());
-
-            // Enable telemetry immediately
-            runlogger = true;
-            Debug.Log("Telemetry logging enabled for all scenes.");
-
-            // Setup logging directories
-            DataLogFolder = $"TelemetryDataLogs\\{DateTime.UtcNow:yyyy-MM-dd HHmm}\\";
-            System.IO.Directory.CreateDirectory(DataLogFolder);
-
-            csv_path = $"{DataLogFolder}datalog.csv";
-            json_path = $"{DataLogFolder}datalog.json";
-
-            dataGetter = new DataGetters(this);
-
-            udpClient = new UdpClient();
-        }
-
-        public IEnumerator DiscoverDevice()
-        {
-            Debug.Log("Discovering Yaw2 chair...");
-
-            UdpClient discoveryClient = new UdpClient(50010); // Broadcast port
-            discoveryClient.EnableBroadcast = true;
-
-            byte[] discoveryMessage = Encoding.ASCII.GetBytes("YAW_CALLING");
-            IPEndPoint broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, 50010);
-
-            // Send discovery message
-            discoveryClient.Send(discoveryMessage, discoveryMessage.Length, broadcastEndpoint);
-            Debug.Log("Discovery message sent.");
-
-            IPEndPoint responseEndpoint = new IPEndPoint(IPAddress.Any, 50050); // Response port
-            bool deviceFound = false;
-            int maxRetries = 10; // Retry up to 10 times
-            int retries = 0;
-
-            while (!deviceFound && retries < maxRetries)
+            while (SceneManager.GetActiveScene().buildIndex != 7 || SceneManager.GetActiveScene().buildIndex == 12)
             {
-                Debug.Log($"Discovery attempt {retries + 1}/{maxRetries}");
+                yield return null;
+            }
+            LogData.AddEntry("Done waiting for map loading, starting Yaw2 discovery...");
+            yield return StartCoroutine(DiscoverDevice()); // ✅ Finds Yaw2 before enabling telemetry
+            canSendUDP = true;
+        }
 
+        private void Update()
+        {
+            if (canSendUDP)
+            {
+                CollectData.GetData();
                 try
                 {
-                    byte[] response = discoveryClient.Receive(ref responseEndpoint);
-                    if (response.Length > 0)
-                    {
-                        string responseMessage = Encoding.ASCII.GetString(response);
-
-
-                        if (responseMessage.Contains("YAWDEVICE2")) // Validate response
-                        {
-                            receiverIp = responseEndpoint.Address.ToString();
-                            Debug.Log($"Discovered Yaw2 chair at IP: {receiverIp}");
-                            deviceFound = true;
-                        }
-                    }
-                }
-                catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
-                {
-                    retries++;
-                    Debug.LogWarning($"Timeout waiting for device response. Retrying... ({retries}/{maxRetries})");
+                    SendUdpClient.Send(CollectData.Data.ToArray(), CollectData.Data.Count);
+                    LogData.AddEntry("✅ Sent telemetry data to " + SendToIP);
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogError($"Unexpected error during device discovery: {ex.Message}");
+                    LogData.AddEntry("Error sending telemetry data: " + ex.ToString());
                 }
-
-                // Delay outside catch block
-                yield return new WaitForSeconds(1f);
             }
-
-            if (!deviceFound)
-            {
-                receiverIp = "127.0.0.1"; // Fallback IP
-                Debug.LogError("Failed to discover Yaw2 chair. Using fallback IP.");
-            }
-
-            discoveryClient.Close();
         }
 
         public override void UnLoad()
         {
-            Debug.Log("Unloading telemetry mod...");
-            udpClient?.Dispose(); // Properly release the UDP client
+            SendUdpClient.Close();
+            SendUdpClient.Dispose();
+        }
+
+        private IEnumerator DiscoverDevice()
+        {
+            LogData.AddEntry("[Discovery] Attempting to find Yaw2 device...");
+            UdpClient discoveryClient = null;
+            try
+            {
+                discoveryClient = new UdpClient(50010);
+                discoveryClient.EnableBroadcast = true;
+                discoveryClient.Client.ReceiveTimeout = 1000; // 1s timeout
+            }
+            catch (Exception ex)
+            {
+                LogData.AddEntry("[Discovery] Could not open socket on port 50010: " + ex.Message);
+                yield break;
+            }
+
+            byte[] discoveryMsg = Encoding.ASCII.GetBytes("YAW_CALLING");
+            IPEndPoint broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, 50010);
+            bool deviceFound = false;
+            int maxAttempts = 10;
+
+            for (int i = 0; i < maxAttempts && !deviceFound; i++)
+            {
+                LogData.AddEntry("[Discovery] Attempt " + (i + 1) + "/" + maxAttempts);
+                try
+                {
+                    discoveryClient.Send(discoveryMsg, discoveryMsg.Length, broadcastEndpoint);
+                    IPEndPoint responseEndpoint = new IPEndPoint(IPAddress.Any, 0);
+                    byte[] response = discoveryClient.Receive(ref responseEndpoint);
+
+                    if (response != null && response.Length > 0)
+                    {
+                        string responseText = Encoding.ASCII.GetString(response);
+                        if (responseText.Contains("YAWDEVICE2"))
+                        {
+                            SendToIP = responseEndpoint.Address.ToString();
+                            LogData.AddEntry("✅ [Discovery] Found Yaw2 at " + SendToIP);
+                            deviceFound = true;
+                        }
+                    }
+                }
+                catch (SocketException)
+                {
+                    LogData.AddEntry("[Discovery] No response (timeout)");
+                }
+                catch (Exception ex)
+                {
+                    LogData.AddEntry("[Discovery] Error: " + ex.Message);
+                }
+
+                yield return new WaitForSeconds(1f);
+            }
+
+            discoveryClient?.Close();
+
+            if (!deviceFound)
+            {
+                LogData.AddEntry("[Discovery] Failed to find Yaw2 device, using fallback IP 127.0.0.1");
+                SendToIP = "127.0.0.1";
+            }
+
+            LogData.AddEntry("Testing UDP connection to " + SendToIP + ":" + SendToPort + "...");
+            try
+            {
+                SendUdpClient.Connect(SendToIP, SendToPort);
+                byte[] testMessage = Encoding.ASCII.GetBytes("TEST_MESSAGE");
+                SendUdpClient.Send(testMessage, testMessage.Length);
+                LogData.AddEntry("✅ Test UDP message sent successfully.");
+            }
+            catch (Exception ex)
+            {
+                LogData.AddEntry("❌ Failed to send test UDP message: " + ex.Message);
+            }
         }
     }
 }

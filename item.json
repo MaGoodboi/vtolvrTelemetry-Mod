@@ -4,7 +4,7 @@
   "Description": "A mod that sends telemetry data to Yaw2 chairs.",
   "PreviewImageUrl": "https://raw.githubusercontent.com/MaGoodboi/vtolvrTelemetry-Mod/main/icon.PNG",
   "MetaData": {
-    "DllName": "vtolvrTelemetry.dll",
+    "DllName": "vtolvrtelemetry.dll",
     "AllowLoadOnStart": true,
     "ShowOnMainList": true,
     "DllHash": ""

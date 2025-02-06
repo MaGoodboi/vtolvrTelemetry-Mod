@@ -1,273 +1,297 @@
 ﻿using System;
-using System.Net;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using UnityEngine;
-using HarmonyLib;
+using VTOLAPI;
 
 namespace vtolvrtelemetry
 {
-    public class DataGetters
+    public static class CollectData
     {
-        private UdpClient udpClient;
-        private IPEndPoint remoteEndPoint;
-
-        public DataGetters(VtolvrTelemetry mod)
+        public static void GetData()
         {
-            udpClient = new UdpClient();
-            remoteEndPoint = new IPEndPoint(IPAddress.Parse(mod.receiverIp), mod.receiverPort);
-        }
-
-        public void GetData()
-        {
+            double num = 0.0;
             try
             {
-                // Get the player's aircraft
-                var playerActor = FlightSceneManager.instance.playerActor;
-                if (playerActor == null)
+                Actor playerActor = FlightSceneManager.instance.playerActor;
+                GameObject playersVehicleGameObject = VTAPI.GetPlayersVehicleGameObject();
+                CollectData.Data.Clear();
+                num = 1.0;
+                Data.AddRange(BitConverter.GetBytes(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds));
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.x));
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.y));
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.z));
+                num = 1.1;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.playerGs));
+                num = 1.2;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.rb.drag));
+                num = 1.3;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.rb.mass));
+                num = 1.4;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.airspeed));
+                num = 1.5;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.verticalSpeed));
+                num = 1.6;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.altitudeASL));
+                num = 1.7;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.heading));
+                num = 1.8;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pitch));
+                num = 1.9;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.roll));
+                num = 1.11;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.aoa));
+                num = 2.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetFlaps(playersVehicleGameObject)));
+                num = 3.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetBrakes(playersVehicleGameObject)));
+                num = 4.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetFuelLevel(playersVehicleGameObject)));
+                num = 5.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetGear(playersVehicleGameObject)));
+                num = 6.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetCanopy(playersVehicleGameObject)));
+                num = 7.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetHook(playersVehicleGameObject)));
+                num = 8.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetEjectionState(playersVehicleGameObject)));
+                num = 9.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetStall(playersVehicleGameObject)));
+                num = 10.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.isLanded));
+                num = 11.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetAverageSuspension(playersVehicleGameObject)));
+                num = 12.0;
+                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetEnginesNumber(playersVehicleGameObject)));
+                foreach (float value in CollectData.GetEnginesRPM(playersVehicleGameObject))
                 {
-                    Debug.LogWarning("Player aircraft not found. Skipping telemetry update.");
-                    return;
+                    CollectData.Data.AddRange(BitConverter.GetBytes(value));
                 }
-
-                // Get flight data
-                var flightInfo = playerActor.flightInfo;
-
-                // Extract movement data
-                float yaw = playerActor.transform.eulerAngles.y;
-                float pitch = playerActor.transform.eulerAngles.x;
-                float roll = playerActor.transform.eulerAngles.z;
-
-                // Acceleration values
-                float xAccel = flightInfo.acceleration.x;
-                float yAccel = flightInfo.acceleration.y;
-                float zAccel = flightInfo.acceleration.z;
-                float playerGs = flightInfo.playerGs;
-
-                // 🔥 Detect weapon firing for extra force effects
-                bool gunFired = GetGunFiring(playerActor.gameObject);
-                bool missileFired = GetMissileFiring(playerActor.gameObject);
-
-                if (gunFired || missileFired)
+                foreach (bool value2 in CollectData.GetEnginesAfterburner(playersVehicleGameObject))
                 {
-                    Debug.Log("Weapon fired! Adding recoil force to telemetry.");
-                    xAccel += (gunFired ? -0.5f : 0) + (missileFired ? -0.3f : 0); // Simulated recoil push
+                    CollectData.Data.AddRange(BitConverter.GetBytes(value2));
                 }
-
-                // 🛬 Landing detection (adds bump effect)
-                bool isLanded = IsAircraftLanded(playerActor.gameObject);
-                if (isLanded)
-                {
-                    Debug.Log("Aircraft Landed! Adding touchdown effect.");
-                    yAccel -= 2.0f; // Simulate sudden downward force upon landing
-                }
-
-                // 🛑 Tail Hook Deployment (Abrupt Stop Effect)
-                bool tailHookDeployed = GetTailHookDeployed(playerActor.gameObject);
-                if (tailHookDeployed)
-                {
-                    Debug.Log("Tail Hook Deployed! Simulating abrupt landing force.");
-                    yAccel -= 3.0f; // Sudden stop effect
-                }
-
-                // 🚀 Launch Bar Activation (Simulates Catapult Acceleration)
-                bool launchBarEngaged = GetLaunchBarEngaged(playerActor.gameObject);
-                if (launchBarEngaged)
-                {
-                    Debug.Log("Launch Bar Engaged! Simulating catapult acceleration.");
-                    xAccel += 5.0f; // Strong forward acceleration effect
-                }
-
-                // ✈️ Flaps (Affect Pitch Sensitivity)
-                float flapAngle = GetFlapPosition(playerActor.gameObject);
-                pitch += flapAngle * 5.0f; // Adjust pitch slightly based on flaps
-
-                // 🛑 Brakes (Sudden Deceleration Effect)
-                float brakeForce = GetBrakes(playerActor.gameObject);
-                xAccel -= brakeForce * 3.0f; // Apply braking force
-
-                // ⚠️ Stalling Effect (Small Random Vibrations)
-                bool isStalling = IsAircraftStalling(playerActor.gameObject);
-                if (isStalling)
-                {
-                    Debug.Log("Aircraft is stalling! Adding subtle shake.");
-                    yAccel += UnityEngine.Random.Range(-0.2f, 0.2f); // Small shake effect
-                }
-
-                // 🎯 Missile Lock (Stress Vibration)
-                bool missileLocked = IsMissileLocked(playerActor.gameObject);
-                if (missileLocked)
-                {
-                    Debug.Log("Missile Lock Detected! Adding stress shake.");
-                    xAccel += UnityEngine.Random.Range(-0.3f, 0.3f); // Subtle shaking
-                }
-
-                // Ensure Yaw is continuous (prevents sudden jumps)
-                yaw = NormalizeYaw(yaw);
-
-                // Format telemetry data
-                string telemetryData = $"Yaw: {yaw:F2}, Pitch: {pitch:F2}, Roll: {roll:F2}, " +
-                                       $"XAccel: {xAccel:F2}, YAccel: {yAccel:F2}, ZAccel: {zAccel:F2}, " +
-                                       $"G-Force: {playerGs:F2}";
-
-                // Send telemetry data
-                byte[] data = Encoding.ASCII.GetBytes(telemetryData);
-                udpClient.Send(data, data.Length, remoteEndPoint);
-                Debug.Log($"Live telemetry sent: {telemetryData}");
+                CollectData.Data.AddRange(BitConverter.GetBytes(playersVehicleGameObject.name.Trim().Length));
+                CollectData.Data.AddRange(Encoding.Default.GetBytes(playersVehicleGameObject.name.Trim()));
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error retrieving telemetry data: {ex.Message}");
+                LogData.AddEntry("Error getting telemetry data at #" + num.ToString() + ":" + ex.ToString());
             }
         }
 
-        // Helper Function to Normalize Yaw for Smooth 360° Rotation
-        private float NormalizeYaw(float yaw)
+        public static bool GetHook(GameObject vehicle)
         {
-            if (yaw > 180f)
-            {
-                yaw -= 360f;
-            }
-            return yaw;
-        }
-
-        // 🔥 Detect Gun Firing
-        public static bool GetGunFiring(GameObject vehicle)
-        {
+            bool result;
             try
             {
-                WeaponManager weaponManager = vehicle.GetComponentInChildren<WeaponManager>();
-                if (weaponManager == null)
-                {
-                    return false; // Safe return instead of throwing an error
-                }
-                return weaponManager.availableWeaponTypes.gun && weaponManager.isFiring;
+                result = vehicle.GetComponentInChildren<Tailhook>().isDeployed;
             }
-            catch { return false; }
+            catch
+            {
+                result = false;
+            }
+            return result;
         }
 
-        // 🚀 Detect Missile Firing
-        public static bool GetMissileFiring(GameObject vehicle)
+        public static float GetFlaps(GameObject vehicle)
         {
+            float result;
             try
             {
-                WeaponManager weaponManager = vehicle.GetComponentInChildren<WeaponManager>();
-                return (weaponManager.availableWeaponTypes.aam ||
-                        weaponManager.availableWeaponTypes.agm ||
-                        weaponManager.availableWeaponTypes.antirad ||
-                        weaponManager.availableWeaponTypes.antiShip) && weaponManager.isFiring;
+                result = vehicle.GetComponentInChildren<AeroController>().flaps;
             }
-            catch { return false; }
+            catch
+            {
+                result = 0f;
+            }
+            return result;
         }
 
-        // 🛑 Detect Tail Hook Deployment
-        public static bool GetTailHookDeployed(GameObject vehicle)
-        {
-            try
-            {
-                Tailhook hook = vehicle.GetComponentInChildren<Tailhook>();
-                if (hook != null)
-                {
-                    bool deployed = false;
-                    try
-                    {
-                        deployed = Traverse.Create(hook).Field("deployed").GetValue<bool>();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogError($"Error accessing tail hook deployment state: {ex.Message}");
-                    }
-                    return deployed;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error detecting tail hook deployment: {ex.Message}");
-                return false;
-            }
-        }
-
-        // 🚀 Detect Launch Bar Activation
-        public static bool GetLaunchBarEngaged(GameObject vehicle)
-        {
-            try
-            {
-                // Find the component that manages the launch bar (if it exists)
-                Component launchBar = vehicle.GetComponentInChildren<Component>();
-                if (launchBar != null)
-                {
-                    // Use HarmonyLib reflection to check if the launch bar is engaged
-                    bool engaged = Traverse.Create(launchBar).Field("engaged").GetValue<bool>();
-                    return engaged;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error detecting launch bar engagement: {ex.Message}");
-                return false;
-            }
-        }
-
-        // ✈️ Detect Flap Position
-        public static float GetFlapPosition(GameObject vehicle)
-        {
-            try { return vehicle.GetComponentInChildren<AeroController>().flaps; }
-            catch { return 0; }
-        }
-
-        // 🛑 Detect Brakes
         public static float GetBrakes(GameObject vehicle)
         {
-            try { return vehicle.GetComponentInChildren<AeroController>().brake; }
-            catch { return 0; }
-        }
-
-        // ⚠️ Detect Stall
-        public static bool IsAircraftStalling(GameObject vehicle)
-        {
+            float result;
             try
             {
-                HUDStallWarning stallWarning = vehicle.GetComponentInChildren<HUDStallWarning>();
-                if (stallWarning != null)
+                result = vehicle.GetComponentInChildren<AeroController>().brake;
+            }
+            catch
+            {
+                result = 0f;
+            }
+            return result;
+        }
+        public static float GetCanopy(GameObject vehicle)
+        {
+            float result;
+            try
+            {
+                CanopyAnimator componentInChildren = vehicle.GetComponentInChildren<CanopyAnimator>();
+                result = (componentInChildren.isBroken ? 5f : ((float)componentInChildren.targetState));
+            }
+            catch
+            {
+                result = 0f;
+            }
+            return result;
+        }
+        public static float GetGear(GameObject vehicle)
+        {
+            float result;
+            try
+            {
+                result = vehicle.GetComponentInChildren<GearAnimator>().transitionTime;
+            }
+            catch
+            {
+                result = 0f;
+            }
+            return result;
+        }
+        public static float GetAverageSuspension(GameObject vehicle)
+        {
+            float result;
+            try
+            {
+                GearAnimator componentInChildren = vehicle.GetComponentInChildren<GearAnimator>();
+                float num = 0f;
+                int num2 = componentInChildren.gearLegs.Count<GearAnimator.AnimatedGearLeg>();
+                if (num2 > 0)
                 {
-                    // Use HarmonyLib to access the private "stalling" field
-                    bool stalling = Traverse.Create(stallWarning).Field("stalling").GetValue<bool>();
-                    return stalling;
+                    foreach (GearAnimator.AnimatedGearLeg animatedGearLeg in componentInChildren.gearLegs)
+                    {
+                        num += animatedGearLeg.suspension.suspensionDistance;
+                    }
+                    num /= (float)num2;
                 }
-                return false;
+                result = num;
             }
-            catch (Exception ex)
+            catch
             {
-                Debug.LogError($"Error detecting stall status: {ex.Message}");
-                return false;
+                result = 0f;
             }
+            return result;
         }
 
-        // 🎯 Detect Missile Lock
-        public static bool IsMissileLocked(GameObject vehicle)
+        public static bool GetEjectionState(GameObject vehicle)
         {
-            MissileDetector detector = vehicle.GetComponentInChildren<MissileDetector>();
-            return detector != null && detector.missileDetected;
+            bool result;
+            try
+            {
+                result = vehicle.GetComponentInChildren<EjectionSeat>().ejected;
+            }
+            catch
+            {
+                result = false;
+            }
+            return result;
         }
-        public static bool IsAircraftLanded(GameObject vehicle)
+
+        public static float GetFuelLevel(GameObject vehicle)
+        {
+            float result;
+            try
+            {
+                result = vehicle.GetComponentInChildren<FuelTank>().totalFuel;
+            }
+            catch
+            {
+                result = 0f;
+            }
+            return result;
+        }
+
+        public static bool GetStall(GameObject vehicle)
+        {
+            bool result;
+            try
+            {
+                result = vehicle.GetComponentInChildren<HUDStallWarning>().isActiveAndEnabled;
+            }
+            catch
+            {
+                result = false;
+            }
+            return result;
+        }
+
+        public static int GetEnginesNumber(GameObject vehicle)
+        {
+            int result;
+            try
+            {
+                result = vehicle.GetComponentsInChildren<ModuleEngine>().Count<ModuleEngine>();
+            }
+            catch
+            {
+                result = 0;
+            }
+            return result;
+        }
+
+        public static List<float> GetEnginesRPM(GameObject vehicle)
+        {
+            List<float> list = new List<float>();
+            try
+            {
+                int num = 1;
+                foreach (ModuleEngine moduleEngine in vehicle.GetComponentsInChildren<ModuleEngine>())
+                {
+                    list.Add(moduleEngine.displayedRPM);
+                    num++;
+                }
+            }
+            catch
+            {
+            }
+            return list;
+        }
+
+        public static List<bool> GetEnginesAfterburner(GameObject vehicle)
+        {
+            List<bool> list = new List<bool>();
+            try
+            {
+                int num = 1;
+                foreach (ModuleEngine moduleEngine in vehicle.GetComponentsInChildren<ModuleEngine>())
+                {
+                    list.Add(moduleEngine.afterburner);
+                    num++;
+                }
+            }
+            catch
+            {
+            }
+            return list;
+        }
+
+        public static void SendTo(UdpClient udpClient)
         {
             try
             {
-                Actor actor = vehicle.GetComponent<Actor>();
-                return actor.flightInfo.isLanded;
+                int num = Marshal.SizeOf<List<byte>>(CollectData.Data);
+                byte[] array = new byte[num];
+                IntPtr intPtr = IntPtr.Zero;
+                try
+                {
+                    intPtr = Marshal.AllocHGlobal(num);
+                    Marshal.StructureToPtr<List<byte>>(CollectData.Data, intPtr, true);
+                    Marshal.Copy(intPtr, array, 0, num);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(intPtr);
+                }
+                udpClient.Send(array, array.Length);
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error Detecting landing: {ex.Message}");
-                return false;
+                LogData.AddEntry("Error sending telemetry data: " + ex.ToString());
             }
         }
-        public void Dispose()
-        {
-            udpClient?.Close();
-            udpClient?.Dispose();
-        }
+        public static List<byte> Data = new List<byte>();
     }
 }

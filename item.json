@@ -1,5 +1,4 @@
 ﻿{
-  "$schema": "https://gitlab.com/vtolvr-mods/ModLoader/-/raw/release/schema.json",
   "Title": "vtolvrtelemetry",
   "Description": "A mod that sends telemetry data to Yaw2 chairs.",
   "PreviewImageUrl": "https://raw.githubusercontent.com/MaGoodboi/vtolvrTelemetry-Mod/main/icon.PNG",

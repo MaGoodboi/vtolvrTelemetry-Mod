@@ -1,297 +1,536 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Runtime.InteropServices;
+using System.IO;
 using System.Text;
+using HarmonyLib;
 using UnityEngine;
+using Valve.Newtonsoft.Json;
 using VTOLAPI;
+using VtolPlugin;
 
 namespace vtolvrtelemetry
 {
-    public static class CollectData
+    public class DataGetters
     {
-        public static void GetData()
+        public vtolvrtelemetry dataLogger { get; set; }
+
+        public DataGetters(vtolvrtelemetry dataLogger)
         {
-            double num = 0.0;
+            this.dataLogger = dataLogger;
+        }
+
+        public void GetData()
+        {
+            CollectData flightInfo = new CollectData();
+
             try
             {
-                Actor playerActor = FlightSceneManager.instance.playerActor;
-                GameObject playersVehicleGameObject = VTAPI.GetPlayersVehicleGameObject();
-                CollectData.Data.Clear();
-                num = 1.0;
-                Data.AddRange(BitConverter.GetBytes(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds));
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.x));
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.y));
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pilotAccel.z));
-                num = 1.1;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.playerGs));
-                num = 1.2;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.rb.drag));
-                num = 1.3;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.rb.mass));
-                num = 1.4;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.airspeed));
-                num = 1.5;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.verticalSpeed));
-                num = 1.6;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.altitudeASL));
-                num = 1.7;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.heading));
-                num = 1.8;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.pitch));
-                num = 1.9;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.roll));
-                num = 1.11;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.aoa));
-                num = 2.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetFlaps(playersVehicleGameObject)));
-                num = 3.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetBrakes(playersVehicleGameObject)));
-                num = 4.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetFuelLevel(playersVehicleGameObject)));
-                num = 5.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetGear(playersVehicleGameObject)));
-                num = 6.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetCanopy(playersVehicleGameObject)));
-                num = 7.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetHook(playersVehicleGameObject)));
-                num = 8.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetEjectionState(playersVehicleGameObject)));
-                num = 9.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetStall(playersVehicleGameObject)));
-                num = 10.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(playerActor.flightInfo.isLanded));
-                num = 11.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetAverageSuspension(playersVehicleGameObject)));
-                num = 12.0;
-                CollectData.Data.AddRange(BitConverter.GetBytes(CollectData.GetEnginesNumber(playersVehicleGameObject)));
-                foreach (float value in CollectData.GetEnginesRPM(playersVehicleGameObject))
-                {
-                    CollectData.Data.AddRange(BitConverter.GetBytes(value));
-                }
-                foreach (bool value2 in CollectData.GetEnginesAfterburner(playersVehicleGameObject))
-                {
-                    CollectData.Data.AddRange(BitConverter.GetBytes(value2));
-                }
-                CollectData.Data.AddRange(BitConverter.GetBytes(playersVehicleGameObject.name.Trim().Length));
-                CollectData.Data.AddRange(Encoding.Default.GetBytes(playersVehicleGameObject.name.Trim()));
+                Actor playeractor = FlightSceneManager.instance.playerActor;
+                GameObject currentVehicle = VTAPI.GetPlayersVehicleGameObject();
+
+                flightInfo.unixTimestamp = (Int32)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
+
+                flightInfo.Physics.XAccel = (float)Math.Round(playeractor.flightInfo.acceleration.x, 2);
+                flightInfo.Physics.YAccel = (float)Math.Round(playeractor.flightInfo.acceleration.y, 2);
+                flightInfo.Physics.ZAccel = (float)Math.Round(playeractor.flightInfo.acceleration.z, 2);
+                flightInfo.Physics.PlayerGs = Math.Round(playeractor.flightInfo.playerGs, 2).ToString();
+                flightInfo.Vehicle.Heading = (float)Math.Round(playeractor.flightInfo.heading, 2);
+                flightInfo.Vehicle.Pitch = (float)Math.Round(playeractor.flightInfo.pitch, 2);
+                flightInfo.Vehicle.Roll = (float)Math.Round(playeractor.flightInfo.roll, 2);
+                flightInfo.Vehicle.AoA = (float)Math.Round(playeractor.flightInfo.aoa, 2);
+                flightInfo.Vehicle.Airspeed = (float)Math.Round(playeractor.flightInfo.airspeed, 2);
+                flightInfo.Vehicle.VerticalSpeed = (float)Math.Round(playeractor.flightInfo.verticalSpeed, 2);
+                flightInfo.Vehicle.AltitudeASL = (float)Math.Round(playeractor.flightInfo.altitudeASL, 2);
+                flightInfo.Vehicle.Fuel.FuelDensity = DataGetters.getFuelDensity(currentVehicle);
+                flightInfo.Vehicle.Fuel.FuelBurnRate = DataGetters.getFuelBurnRate(currentVehicle);
+                flightInfo.Vehicle.Fuel.FuelLevel = DataGetters.getFuelLevel(currentVehicle);
+                flightInfo.Vehicle.BatteryLevel = DataGetters.GetBattery(currentVehicle);
+                flightInfo.Vehicle.Engines = DataGetters.GetEngineStats(currentVehicle);
+                flightInfo.Vehicle.TailHook = DataGetters.GetHook(currentVehicle);
+                flightInfo.Vehicle.Lights = DataGetters.getVehicleLights(currentVehicle);
+                flightInfo.Vehicle.EjectionState = DataGetters.getEjectionState(currentVehicle);
+                flightInfo.Vehicle.Avionics.RadarState = DataGetters.getRadarState(currentVehicle);
+                flightInfo.Vehicle.Avionics.RWRContacts = DataGetters.getRWRContacts(currentVehicle);
+                flightInfo.Vehicle.Avionics.MissileDetected = DataGetters.getMissileDetected(currentVehicle);
+                flightInfo.Vehicle.Avionics.StallDetector = DataGetters.GetStall(currentVehicle);
+                flightInfo.Vehicle.Avionics.masterArm = DataGetters.getMasterArm(currentVehicle);
+
+                flightInfo.Vehicle.Avionics.masterArm = DataGetters.getMasterArm(currentVehicle);
+
+                // Dumps all components in the vehicle. Will freeze game, but useful to see what we get.
+                //GetAllVehicleComponents(currentVehicle);
+
             }
             catch (Exception ex)
             {
-                LogData.AddEntry("Error getting telemetry data at #" + num.ToString() + ":" + ex.ToString());
+                Support.WriteErrorLog($"{Globals.projectName} - Error getting telemetry data " + ex.ToString());
             }
-        }
 
-        public static bool GetHook(GameObject vehicle)
-        {
-            bool result;
-            try
+            if (dataLogger.jsonEnabled == true)
             {
-                result = vehicle.GetComponentInChildren<Tailhook>().isDeployed;
-            }
-            catch
-            {
-                result = false;
-            }
-            return result;
-        }
-
-        public static float GetFlaps(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<AeroController>().flaps;
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
-
-        public static float GetBrakes(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<AeroController>().brake;
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
-        public static float GetCanopy(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                CanopyAnimator componentInChildren = vehicle.GetComponentInChildren<CanopyAnimator>();
-                result = (componentInChildren.isBroken ? 5f : ((float)componentInChildren.targetState));
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
-        public static float GetGear(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<GearAnimator>().transitionTime;
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
-        public static float GetAverageSuspension(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                GearAnimator componentInChildren = vehicle.GetComponentInChildren<GearAnimator>();
-                float num = 0f;
-                int num2 = componentInChildren.gearLegs.Count<GearAnimator.AnimatedGearLeg>();
-                if (num2 > 0)
+                if (dataLogger.printOutput)
                 {
-                    foreach (GearAnimator.AnimatedGearLeg animatedGearLeg in componentInChildren.gearLegs)
-                    {
-                        num += animatedGearLeg.suspension.suspensionDistance;
-                    }
-                    num /= (float)num2;
+                    Support.WriteLog("Saving JSON...");
                 }
-                result = num;
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
 
-        public static bool GetEjectionState(GameObject vehicle)
-        {
-            bool result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<EjectionSeat>().ejected;
-            }
-            catch
-            {
-                result = false;
-            }
-            return result;
-        }
-
-        public static float GetFuelLevel(GameObject vehicle)
-        {
-            float result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<FuelTank>().totalFuel;
-            }
-            catch
-            {
-                result = 0f;
-            }
-            return result;
-        }
-
-        public static bool GetStall(GameObject vehicle)
-        {
-            bool result;
-            try
-            {
-                result = vehicle.GetComponentInChildren<HUDStallWarning>().isActiveAndEnabled;
-            }
-            catch
-            {
-                result = false;
-            }
-            return result;
-        }
-
-        public static int GetEnginesNumber(GameObject vehicle)
-        {
-            int result;
-            try
-            {
-                result = vehicle.GetComponentsInChildren<ModuleEngine>().Count<ModuleEngine>();
-            }
-            catch
-            {
-                result = 0;
-            }
-            return result;
-        }
-
-        public static List<float> GetEnginesRPM(GameObject vehicle)
-        {
-            List<float> list = new List<float>();
-            try
-            {
-                int num = 1;
-                foreach (ModuleEngine moduleEngine in vehicle.GetComponentsInChildren<ModuleEngine>())
+                using (StreamWriter sw = File.AppendText(dataLogger.json_path))
                 {
-                    list.Add(moduleEngine.displayedRPM);
-                    num++;
+                    sw.WriteLine(JsonConvert.SerializeObject(flightInfo) + "\n");
                 }
             }
-            catch
-            {
-            }
-            return list;
-        }
 
-        public static List<bool> GetEnginesAfterburner(GameObject vehicle)
-        {
-            List<bool> list = new List<bool>();
-            try
+            if (dataLogger.udpEnabled == true)
             {
-                int num = 1;
-                foreach (ModuleEngine moduleEngine in vehicle.GetComponentsInChildren<ModuleEngine>())
+                if (dataLogger.printOutput)
                 {
-                    list.Add(moduleEngine.afterburner);
-                    num++;
+                    Support.WriteLog("Sending UDP Packet...");
                 }
-            }
-            catch
-            {
-            }
-            return list;
-        }
-
-        public static void SendTo(UdpClient udpClient)
-        {
-            try
-            {
-                int num = Marshal.SizeOf<List<byte>>(CollectData.Data);
-                byte[] array = new byte[num];
-                IntPtr intPtr = IntPtr.Zero;
                 try
                 {
-                    intPtr = Marshal.AllocHGlobal(num);
-                    Marshal.StructureToPtr<List<byte>>(CollectData.Data, intPtr, true);
-                    Marshal.Copy(intPtr, array, 0, num);
+                    SendUdp(JsonConvert.SerializeObject(flightInfo));
                 }
-                finally
+                catch (Exception ex)
                 {
-                    Marshal.FreeHGlobal(intPtr);
+                    Debug.LogError($"{Globals.projectName} - Error sending UDP " + ex.ToString());
                 }
-                udpClient.Send(array, array.Length);
+            }
+
+
+        }
+
+        public static List<Dictionary<string, string>> GetEngineStats(GameObject vehicle)
+        {
+            List<Dictionary<string, string>> engines = new List<Dictionary<string, string>>();
+
+            int i = 1;
+
+            foreach (ModuleEngine engine in vehicle.GetComponentsInChildren<ModuleEngine>())
+            {
+                Dictionary<string, string> engineDict = new Dictionary<string, string>();
+                engineDict.Add("Engine Number", i.ToString());
+                engineDict.Add("Enabled", engine.engineEnabled.ToString());
+                engineDict.Add("Failed", engine.failed.ToString());
+                engineDict.Add("Starting", engine.startingUp.ToString());
+                engineDict.Add("Started", engine.startedUp.ToString());
+                engineDict.Add("RPM", engine.displayedRPM.ToString());
+                engineDict.Add("Afterburner", engine.afterburner.ToString());
+                engineDict.Add("FinalThrust", engine.finalThrust.ToString());
+                engineDict.Add("FinalThrottle", engine.finalThrottle.ToString());
+                engineDict.Add("MaxThrust", engine.maxThrust.ToString());
+
+                engines.Add(engineDict);
+                i++;
+            }
+
+            return engines;
+        }
+
+        public static string getBrakes(GameObject vehicle)
+        {
+            try
+            {
+                AeroController aero = vehicle.GetComponentInChildren<AeroController>();
+                return aero.brake.ToString();
             }
             catch (Exception ex)
             {
-                LogData.AddEntry("Error sending telemetry data: " + ex.ToString());
+                Debug.LogError($"Error getting brakes: {ex.Message}"); // ✅ Logs the error
+                return "Unavailable";
             }
         }
-        public static List<byte> Data = new List<byte>();
+
+        public static string getRadarState(GameObject vehicle)
+        {
+            try
+            {
+                Radar radar = vehicle.GetComponentInChildren<Radar>();
+                return radar.radarEnabled.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting Radar State: {ex.Message}");
+                return "Unavailable";
+            }
+
+        }
+        public static string getEjectionState(GameObject vehicle)
+        {
+            string ejectionState;
+            try
+            {
+                EjectionSeat ejection = vehicle.GetComponentInChildren<EjectionSeat>();
+                ejectionState = ejection.ejected.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting Ejection state {ex.Message}");
+                ejectionState = "Unavailable";
+            }
+
+            return ejectionState;
+        }
+
+        public static List<Dictionary<string, string>> getRWRContacts(GameObject vehicle)
+        {
+            List<Dictionary<string, string>> contacts = new List<Dictionary<string, string>>();
+
+            try
+            {
+                ModuleRWR rwr = vehicle.GetComponentInChildren<ModuleRWR>();
+
+                if (rwr == null)
+                {
+                    Debug.LogWarning("getRWRContacts: No RWR module found on the vehicle.");
+                    return contacts; // Return empty list
+                }
+
+                foreach (ModuleRWR.RWRContact contact in rwr.contacts)
+                {
+                    Dictionary<string, string> contactDict = new Dictionary<string, string>
+            {
+                { "active", contact.active.ToString() },
+                { "locked", contact.locked.ToString() },
+                { "radarSymbol", contact.radarSymbol.ToString() },
+                { "signalStrength", contact.signalStrength.ToString() }
+            };
+
+                    if (contact.radarActor != null)
+                    {
+                        contactDict.Add("friendFoe", contact.radarActor.team.ToString());
+                        contactDict.Add("name", contact.radarActor.name.ToString());
+                    }
+                    else
+                    {
+                        contactDict.Add("friendFoe", "Unknown");
+                        contactDict.Add("name", "Unknown");
+                    }
+
+                    contacts.Add(contactDict);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting RWR Contacts: {ex.Message}");
+            }
+
+            return contacts;
+        }
+
+        public static string getMissileDetected(GameObject vehicle)
+        {
+            try
+            {
+                MissileDetector md = vehicle.GetComponentInChildren<MissileDetector>();
+                return md.missileDetected.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting Missile Detected: {ex.Message}");
+                return "Unavailable";
+            }
+        }
+
+        public static string getMasterArm(GameObject vehicle)
+        {
+            bool masterArmState = false;
+            try
+            {
+
+
+                foreach (VRLever lever in vehicle.GetComponentsInChildren<VRLever>())
+                {
+
+                    if (lever.gameObject.name == "masterArmSwitchInteractable")
+                    {
+                        if (lever.currentState == 1)
+                        {
+                            masterArmState = true;
+                            break;
+                        }
+                        else
+                        {
+                            masterArmState = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("Error getting master arm state: " + ex.ToString());
+            }
+            return masterArmState.ToString();
+        }
+
+        public static Dictionary<string, string> getVehicleLights(GameObject vehicle)
+        {
+
+            Dictionary<string, string> lights = new Dictionary<string, string>();
+
+            //this is BAD
+            //Light landingLights = vehicle.transform.Find("LandingLight").GetComponent<Light>();
+
+            try
+            {
+                bool landinglight = false;
+                bool navlight = false;
+                bool strobelight = false;
+
+                foreach (Light light in vehicle.GetComponentsInChildren<Light>())
+                {
+
+                    if (light.gameObject.name == "LandingLight")
+                    {
+                        landinglight = true;
+                    }
+                    if (light.gameObject.name.ToString().Contains("StrobeLight"))
+                    {
+                        strobelight = true;
+                    }
+                    Support.WriteLog(light.ToString());
+                }
+
+
+                foreach (SpriteRenderer spriteish in vehicle.GetComponentsInChildren<SpriteRenderer>())
+                {
+                    if (spriteish.ToString().Contains("Nav"))
+                    {
+                        navlight = true;
+                    }
+
+                }
+
+                lights.Add("LandingLights", landinglight.ToString());
+                lights.Add("NavLights", navlight.ToString());
+                lights.Add("StrobeLights", strobelight.ToString());
+
+                return lights;
+
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("Error getting lights " + ex.ToString());
+                return lights;
+            }
+        }
+        public static string getFlaps(GameObject vehicle)
+        {
+            try
+            {
+                AeroController aero = vehicle.GetComponentInChildren<AeroController>();
+                return aero.flaps.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting flaps: {ex.Message}");
+                return "Unavailable";
+            }
+        }
+
+        public static string GetStall(GameObject vehicle)
+        {
+
+            try
+            {
+
+                HUDStallWarning warning = vehicle.GetComponentInChildren<HUDStallWarning>();
+
+                //Nullable boolean allows it to get "stalling" if it doesn't exist? and sets it as false? I think.
+                Boolean? stalling = Traverse.Create(warning).Field("stalling").GetValue() as Boolean?;
+
+                return stalling.ToString();
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("unable to get stall status: " + ex.ToString());
+                return "False";
+            }
+
+        }
+        public static string GetHook(GameObject vehicle)
+        {
+
+            try
+            {
+
+                Tailhook hook = vehicle.GetComponentInChildren<Tailhook>();
+
+                //Nullable boolean allows it to get "stalling" if it doesn't exist? and sets it as false? I think.
+                Boolean? deployed = Traverse.Create(hook).Field("deployed").GetValue() as Boolean?;
+
+                return deployed.ToString();
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("unable to get stall status: " + ex.ToString());
+                return "False";
+            }
+
+        }
+        public static string GetBattery(GameObject vehicle)
+        {
+
+
+            try
+            {
+                Battery batteryCharge = vehicle.GetComponentInChildren<Battery>();
+                string battery = batteryCharge.currentCharge.ToString();
+                return battery;
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("unable to get battery status: " + ex.ToString());
+                return "False";
+            }
+
+        }
+        public static string getFuelLevel(GameObject vehicle)
+        {
+            try
+            {
+                FuelTank tank = vehicle.GetComponentInChildren<FuelTank>();
+                return tank.totalFuel.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting fuel: {ex.Message}");
+                return "False";
+            }
+        }
+
+        public static string getFuelBurnRate(GameObject vehicle)
+        {
+
+            try
+            {
+                FuelTank tank = vehicle.GetComponentInChildren<FuelTank>();
+                return tank.fuelDrain.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting burn rate: {ex.Message}");
+                return "False";
+            }
+
+        }
+
+        public static string getFuelDensity(GameObject vehicle)
+        {
+            try
+            {
+                FuelTank tank = vehicle.GetComponentInChildren<FuelTank>();
+                return tank.fuelDensity.ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting fuel density: {ex.Message}");
+                return "False";
+            }
+
+        }
+
+        public static bool GetGunFiring(GameObject vehicle)
+        {
+
+            try
+            {
+                WeaponManager weaponManager = vehicle.GetComponentInChildren<WeaponManager>();
+
+                if (weaponManager.availableWeaponTypes.gun)
+                {
+                    return weaponManager.isFiring;
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("Unable to get weapon manager status: " + ex.ToString());
+                return false;
+            }
+
+        }
+        public static bool GetBombFiring(GameObject vehicle)
+        {
+
+            try
+            {
+                WeaponManager weaponManager = vehicle.GetComponentInChildren<WeaponManager>();
+
+                if (weaponManager.availableWeaponTypes.bomb)
+                {
+                    return weaponManager.isFiring;
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("Unable to get weapon manager status: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static bool GetMissileFiring(GameObject vehicle)
+        {
+
+            try
+            {
+                WeaponManager weaponManager = vehicle.GetComponentInChildren<WeaponManager>();
+
+                if (weaponManager.availableWeaponTypes.aam || weaponManager.availableWeaponTypes.agm || weaponManager.availableWeaponTypes.antirad || weaponManager.availableWeaponTypes.antiShip)
+                {
+                    return weaponManager.isFiring;
+                }
+                else
+                {
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Support.WriteErrorLog("Unable to get weapon manager status: " + ex.ToString());
+                return false;
+            }
+        }
+
+        public static string getRadarCrossSection(GameObject vehicle)
+        {
+            try
+            {
+                RadarCrossSection rcs = vehicle.GetComponentInChildren<RadarCrossSection>();
+                return rcs.GetAverageCrossSection().ToString();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"Error getting radar cross section: {ex.Message}");
+                return "False";
+            }
+        }
+
+
+        public static bool GetLanded(GameObject vehicle)
+        {
+            return true;
+        }
+
+
+        public void SendUdp(string text)
+        {
+
+            Support.WriteLog($"{Globals.projectName} - Sending UDP Packet: {text} to {dataLogger.receiverIp}");
+
+            byte[] sendBuffer = Encoding.ASCII.GetBytes(text);
+
+            dataLogger.udpClient.Send(sendBuffer, sendBuffer.Length);
+
+        }
     }
 }

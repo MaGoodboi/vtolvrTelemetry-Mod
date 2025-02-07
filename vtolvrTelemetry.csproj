@@ -62,6 +62,12 @@
         <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp.dll</HintPath>
     </Reference>
+        <Reference Include="VtolPlugin">
+          <HintPath>..\..\GameLink\GameLink-2.72\Gameplugins\VtolPlugin.dll</HintPath>
+        </Reference>
+        <Reference Include="YawVR GameLink">
+          <HintPath>..\..\GameLink\GameLink-2.72\YawVR GameLink.dll</HintPath>
+        </Reference>
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

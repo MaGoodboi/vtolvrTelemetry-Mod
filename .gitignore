@@ -35,5 +35,6 @@ bld/
 
 # Recycle Bin
 $RECYCLE.BIN/
+lib/*.dll
 
 

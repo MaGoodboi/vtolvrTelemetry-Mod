@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <OutputType>Library</OutputType>
@@ -8,38 +8,20 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <None Include="lib\0Harmony.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="lib\ModLoader.Framework.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="lib\UnityEngine.CoreModule.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="lib\Assembly-CSharp.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <Compile Remove="lib\**" />
+    <EmbeddedResource Remove="lib\**" />
+    <None Remove="lib\**" />
   </ItemGroup>
-  
   <ItemGroup>
-    <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>lib\UnityEngine.AssetBundleModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>lib\UnityEngine.IMGUIModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.JSONSerializeModule">
-      <HintPath>lib\UnityEngine.JSONSerializeModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>lib\UnityEngine.PhysicsModule.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>lib\UnityEngine.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.UIModule">
-      <HintPath>lib\UnityEngine.UIModule.dll</HintPath>
+    <None Remove=".gitignore" />
+    <None Remove="Directory.Build.targets" />
+    <None Remove="icon.png" />
+    <None Remove="item.json" />
+    <None Remove="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="Valve.Newtonsoft.Json">
       <HintPath>lib\Valve.Newtonsoft.Json.dll</HintPath>
@@ -50,27 +32,21 @@
     <Reference Include="ModLoader.Framework">
       <HintPath>lib\ModLoader.Framework.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>lib\UnityEngine.CoreModule.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>lib\Assembly-CSharp.dll</HintPath>
     </Reference>
     <!-- Improved VTOLAPI Reference -->
     <Reference Include="VTOLAPI">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\workshop\content\3018410\3265689427\VTOLAPI.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\SteamApps\workshop\content\3018410\3265689427\VTOLAPI.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <!-- Copy the compiled DLL to VTOL VR Mods folder -->
+  <!--<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    --><!-- Copy the compiled DLL to VTOL VR Mods folder --><!--
     <Exec Command="xcopy /Y /I /Q &quot;$(TargetPath)&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
-
-    <!-- Copy the .pdb file for debugging (optional) -->
+    --><!-- Copy the .pdb file for debugging (optional) --><!--
     <Exec Command="xcopy /Y /I /Q &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
-
-    <!-- Copy item.json to the mod folder -->
+    --><!-- Copy item.json to the mod folder --><!--
     <Exec Command="xcopy /Y /I /Q &quot;$(ProjectDir)item.json&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\VTOL VR\@Mod Loader\Mods\vtolvrtelemetry\\&quot;" />
-  </Target>
+  </Target>-->
 </Project>

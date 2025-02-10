@@ -1,0 +1,18 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>        
+		  <GameDir>E:\SteamLibrary\SteamApps\common\VTOL VR\</GameDir>
+      <VTOLAPIDir>E:\SteamLibrary\SteamApps\workshop\content\3018410\3265689427</VTOLAPIDir>
+    </PropertyGroup>
+     
+    <Target Name="CreateAndCopyToGameDir" AfterTargets="Build">
+        <MakeDir Directories="$(GameDir)@Mod Loader\Mods\$(TargetName)" Condition="!Exists('$(GameDir)@Mod Loader\Mods\$(TargetName)')" />
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)@Mod Loader\Mods\$(TargetName)" />
+        <Message Text="[$(ProjectName)]-[CreateAndCopyToGameDir] Copied $(TargetPath) to $(GameDir)@Mod Loader\Mods\$(TargetName)" Importance="High" />
+    </Target>
+    
+    <Target Name="CopyTtemJsonToModFolder" AfterTargets="Build">
+        <MakeDir Directories="$(GameDir)@Mod Loader\Mods\$(TargetName)" Condition="!Exists('$(GameDir)@Mod Loader\Mods\$(TargetName)')" />
+        <Copy SourceFiles="$(ProjectDir)item.json" DestinationFolder="$(GameDir)@Mod Loader\Mods\$(TargetName)" />
+        <Message Text="[$(ProjectName)]-[CreateAndCopyToGameDir] Copied $(ProjectDir)item.json to $(GameDir)@Mod Loader\Mods\$(TargetName)" Importance="High" />
+    </Target>
+</Project>
